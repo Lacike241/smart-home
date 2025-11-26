@@ -1,9 +1,9 @@
 "use client";
 
-import { useRoomStore } from "@/store/useRoomStore";
+import { useBuilderStore } from "@/store/builderStore";
 
 export default function ConfigPanel() {
-    const { devices, selectedDeviceId } = useRoomStore();
+    const { devices, selectedDeviceId } = useBuilderStore();
 
     const device = devices.find((d) => d.id === selectedDeviceId);
 
@@ -23,9 +23,10 @@ export default function ConfigPanel() {
 
                 <div>
                     <label className="text-sm text-neutral-600">Názov</label>
+                    {/*TODO: name*/}
                     <input
                         type="text"
-                        defaultValue={device.name}
+                        defaultValue={device.id}
                         className="w-full border rounded-md p-2"
                     />
                 </div>

@@ -1,14 +1,7 @@
 "use client";
 
 import React from "react";
-import {
-    DndContext,
-    PointerSensor,
-    useSensor,
-    useSensors,
-    DragEndEvent,
-    DragOverlay,
-} from "@dnd-kit/core";
+import {DndContext, DragOverlay} from "@dnd-kit/core";
 import {restrictToParentElement} from "@dnd-kit/modifiers";
 import {useBuilderStore} from "@/store/builderStore";
 import {DraggableDevice} from "@/components/builder/DraggableDevice";
@@ -27,9 +20,6 @@ export default function RoomCanvas() {
     const selectDevice = useBuilderStore((s) => s.selectDevice);
     const moveDevice = useBuilderStore((s) => s.moveDevice);
     const [activeId, setActiveId] = React.useState<string | null>(null);
-
-    // senzory pre dnd-kit (pointer = myš + touch)
-    const sensors = useSensors(useSensor(PointerSensor, {activationConstraint: {distance: 4}}));
 
     const GRID = 20;
 
@@ -51,7 +41,7 @@ export default function RoomCanvas() {
 
                     const snapped = snapToGrid(device.x + t.x, device.y + t.y, GRID)
 
-                    moveDevice(id, snapped.x, snapped.y);
+                    moveDevice(`${id}`, snapped.x, snapped.y);
                     setActiveId(null)
                 }}
                 onDragCancel={() => setActiveId(null)}
