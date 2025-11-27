@@ -1,6 +1,12 @@
 import {Move} from "lucide-react";
+import {useBuilderStore} from "@/store/builderStore";
 
-export function OverlayDevice({ id, devices }: { id: string; devices: any[] }) {
+interface Props {
+    id: string;
+}
+
+export function OverlayDevice({ id }: Props) {
+    const devices = useBuilderStore((s) => s.devices);
     const device = devices.find((d) => d.id === id);
     if (!device) return null;
 

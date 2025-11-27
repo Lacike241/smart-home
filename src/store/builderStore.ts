@@ -1,14 +1,19 @@
-import { create } from "zustand";
-import { nanoid } from "nanoid";
+import {create} from "zustand";
+import {nanoid} from "nanoid";
 
-export type DeviceType = "light" | "sensor" | "camera" | "tv" | "socket";
+import {TypeOfDevice, PresetColor} from "@/types/builder";
+import {persist} from "zustand/middleware";
 
 export interface Device {
     id: string;
-    type: DeviceType;
+    name: string
+    type: TypeOfDevice;
     x: number;
     y: number;
-    rotation?: number;
+    on: boolean;
+    brightness: number;
+    color: PresetColor;
+    rotation: number;
     config: {
         isOn?: boolean;
         brightness?: number;
@@ -22,70 +27,102 @@ interface BuilderState {
     selectedDeviceId: string | null;
 
     // actions
-    addDevice: (type: DeviceType) => void;
+    addDevice: (type: TypeOfDevice) => void;
     updateDevice: (id: string, updates: Partial<Device>) => void;
     updateDeviceConfig: (
         id: string,
         config: Partial<Device["config"]>
     ) => void;
+    duplicateDevice: (id: string | null) => void;
     moveDevice: (id: string, x: number, y: number) => void;
-    removeDevice: (id: string) => void;
+    removeDevice: (id: string | null) => void;
     selectDevice: (id: string | null) => void;
 }
 
-export const useBuilderStore = create<BuilderState>((set) => ({
-    roomSize: { width: 800, height: 500 },
-    devices: [],
-    selectedDeviceId: null,
-
-    addDevice: (type) =>
-        set((state) => ({
-            devices: [
-                ...state.devices,
-                {
-                    id: nanoid(),
-                    type,
-                    x: 100,
-                    y: 100,
-                    rotation: 0,
-                    config: {
-                        isOn: false,
-                        brightness: 80,
-                        color: "#22c55e", // tvoje zelené 🎉
-                    },
-                },
-            ],
-        })),
-
-    updateDevice: (id, updates) =>
-        set((state) => ({
-            devices: state.devices.map((d) =>
-                d.id === id ? { ...d, ...updates } : d
-            ),
-        })),
-
-    updateDeviceConfig: (id, cfg) =>
-        set((state) => ({
-            devices: state.devices.map((d) =>
-                d.id === id ? { ...d, config: { ...d.config, ...cfg } } : d
-            ),
-        })),
-
-    moveDevice: (id, x, y) =>
-        set((state) => ({
-            devices: state.devices.map((d) =>
-                d.id === id ? { ...d, x, y } : d
-            ),
-        })),
-
-    removeDevice: (id) =>
-        set((state) => ({
-            devices: state.devices.filter((d) => d.id !== id),
+export const useBuilderStore = create<BuilderState>()(
+    persist(
+        (set) => ({
+            roomSize: {width: 800, height: 500},
+            devices: [],
             selectedDeviceId: null,
-        })),
 
-    selectDevice: (id) => {
-        console.log("Selected device:", id);
-        set({selectedDeviceId: id})
-    },
-}));
+            addDevice: (type) =>
+                set((state) => ({
+                    devices: [
+                        ...state.devices,
+                        {
+                            id: nanoid(),
+                            type,
+                            name: '',
+                            x: 100,
+                            y: 100,
+                            on: false,
+                            color: "#ffffff",
+                            brightness: 100,
+                            rotation: 0,
+                            config: {
+                                isOn: false,
+                                brightness: 80,
+                                color: "#22c55e",
+                            },
+                        },
+                    ],
+                })),
+
+            updateDevice: (id, updates) =>
+                set((state) => ({
+                    devices: state.devices.map((d) =>
+                        d.id === id ? {...d, ...updates} : d
+                    ),
+                })),
+
+            updateDeviceConfig: (id, cfg) =>
+                set((state) => ({
+                    devices: state.devices.map((d) =>
+                        d.id === id ? {...d, config: {...d.config, ...cfg}} : d
+                    ),
+                })),
+
+            moveDevice: (id, x, y) =>
+                set((state) => ({
+                    devices: state.devices.map((d) =>
+                        d.id === id ? {...d, x, y} : d
+                    ),
+                })),
+
+            removeDevice: (id) => {
+                if (id) {
+                    set((state) => ({
+                        devices: state.devices.filter((d) => d.id !== id),
+                        selectedDeviceId: null,
+                    }))
+                }
+            },
+            selectDevice: (id) => {
+                set({selectedDeviceId: id})
+            },
+            duplicateDevice: (id) => {
+                if (id) {
+                    set((state) => {
+                        const original = state.devices.find((d) => d.id === id);
+                        if (!original) return {};
+
+                        const copy = {
+                            ...original,
+                            id: nanoid(),
+                            x: original.x + 20,
+                            y: original.y + 20,
+                            name: original.name + " copy"
+                        };
+
+                        return {
+                            devices: [...state.devices, copy],
+                            selectedDeviceId: copy.id,
+                        };
+                    })
+                }
+            }
+        }), {
+            name: 'builder-storage',
+        },)
+);

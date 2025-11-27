@@ -6,6 +6,7 @@ import {restrictToParentElement} from "@dnd-kit/modifiers";
 import {useBuilderStore} from "@/store/builderStore";
 import {DraggableDevice} from "@/components/builder/DraggableDevice";
 import {OverlayDevice} from "@/components/builder/OverlayDevice";
+import type {DragEndEvent, DragStartEvent} from "@dnd-kit/core/dist/types";
 
 function snapToGrid(x: number, y: number, grid: number) {
     const snappedX = Math.round(x / grid) * grid;
@@ -17,34 +18,39 @@ export default function RoomCanvas() {
     const devices = useBuilderStore((s) => s.devices);
     const roomSize = useBuilderStore((s) => s.roomSize);
     const selectedDeviceId = useBuilderStore((s) => s.selectedDeviceId);
-    const selectDevice = useBuilderStore((s) => s.selectDevice);
     const moveDevice = useBuilderStore((s) => s.moveDevice);
     const [activeId, setActiveId] = React.useState<string | null>(null);
 
     const GRID = 20;
 
-    console.log(roomSize.width, roomSize.height, `w-[${roomSize.width}px] h-[${roomSize.height}px]`)
+    const handleOnDragStart = React.useCallback((e: DragEndEvent) => {
+        const id = e.active.id;
+        const device = devices.find((d) => d.id === id);
+        if (!device) return;
+
+        const t = e.delta;
+
+        const snapped = snapToGrid(device.x + t.x, device.y + t.y, GRID)
+
+        moveDevice(`${id}`, snapped.x, snapped.y);
+        setActiveId(null)
+    }, [devices, moveDevice])
+
+    const handleDragCancel = React.useCallback(()=>{
+        setActiveId(null)
+    }, [])
+
+    const handleDragStart = React.useCallback((e: DragStartEvent)=>{
+        setActiveId(e.active.id as string);
+    }, [])
 
     return (
         <div className="flex-1 flex items-center justify-center overflow-auto p-4">
             <DndContext
                 modifiers={[restrictToParentElement]}
-                onDragStart={(event) => {
-                    setActiveId(event.active.id as string);
-                }}
-                onDragEnd={(e) => {
-                    const id = e.active.id;
-                    const device = devices.find((d) => d.id === id);
-                    if (!device) return;
-
-                    const t = e.delta;
-
-                    const snapped = snapToGrid(device.x + t.x, device.y + t.y, GRID)
-
-                    moveDevice(`${id}`, snapped.x, snapped.y);
-                    setActiveId(null)
-                }}
-                onDragCancel={() => setActiveId(null)}
+                onDragStart={handleDragStart}
+                onDragEnd={handleOnDragStart}
+                onDragCancel={handleDragCancel}
             >
                 <div
                     // ref={setParentRef}
@@ -62,13 +68,12 @@ export default function RoomCanvas() {
                             key={d.id}
                             device={d}
                             isSelected={d.id === selectedDeviceId}
-                            onSelect={() => selectDevice(d.id)}
                         />
                     ))}
                 </div>
                 <DragOverlay zIndex={1000}>
                     {activeId ? (
-                        <OverlayDevice id={activeId} devices={devices}/>
+                        <OverlayDevice id={activeId} />
                     ) : null}
                 </DragOverlay>
             </DndContext>
